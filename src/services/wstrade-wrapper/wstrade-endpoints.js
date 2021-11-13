@@ -22,10 +22,11 @@ export const refresh = (refreshToken) => {
   };
 };
 
-export const getAccount = () => {
+export const getAccounts = (accessToken) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}account/list`,
+    headers: { authorization: accessToken },
   };
 };
 
@@ -87,17 +88,21 @@ export const getActivities = () => {
   };
 };
 
-export const getMe = () => {
+// Unused
+export const getMe = (accessToken) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}me`,
+    headers: { authorization: accessToken },
   };
 };
 
-export const getPerson = () => {
+// Unused
+export const getPerson = (accessToken) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}person`,
+    headers: { authorization: accessToken },
   };
 };
 

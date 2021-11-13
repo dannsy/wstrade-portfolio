@@ -1,5 +1,5 @@
 import express from 'express';
-import authRouter from './controllers/auth.js';
+import userController from './controllers/user.controller.js';
 
 const app = express();
 const port = process.env.PORT;
@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
   res.send('Index route');
 });
 
-app.use('/auth', authRouter);
+app.use('/user', userController);
 
 app.listen(port, () => {
   console.log(`WS Trade api listening on port ${port}`);
