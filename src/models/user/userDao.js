@@ -4,7 +4,7 @@ const tempStore = {};
 
 export function getUser(email) {
   const userFields = tempStore[email];
-  if (!userFields) throw new Error('User not found');
+  if (!userFields) return null;
 
   const user = new UserDto(email, userFields.accessToken, userFields.refreshToken, userFields.accounts);
   return user;

@@ -15,3 +15,8 @@ export async function getAccounts(accessToken) {
   const response = await axios(wstradeEndpoints.getAccounts(accessToken));
   return response.data.results;
 }
+
+export async function getPositions(accessToken) {
+  const response = await axios(wstradeEndpoints.getPositions(accessToken));
+  return response.data.results;
+}

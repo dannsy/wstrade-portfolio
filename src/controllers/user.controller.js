@@ -39,12 +39,12 @@ router.post('/refresh', async (req, res) => {
 router.get('/', (req, res) => {
   const { email } = req.body;
 
-  try {
-    const user = getUser(email);
-    res.send(user);
-  } catch (err) {
-    res.status(404).send(err.message);
+  const user = getUser(email);
+  if (!user) {
+    return res.status(404).send('User not found');
   }
+
+  res.send(user);
 });
 
 export default router;

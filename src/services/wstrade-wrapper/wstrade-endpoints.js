@@ -74,10 +74,11 @@ export const getSecurityById = (securityId) => {
   };
 };
 
-export const getPositions = () => {
+export const getPositions = (accessToken) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}account/positions`,
+    headers: { authorization: accessToken },
   };
 };
 
