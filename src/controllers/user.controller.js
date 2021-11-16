@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import UserDto from '../models/user/userDto.js';
 import { getUser, saveUser, updateUserByEmail } from '../models/user/userDao.js';
-import accountsMap from '../utils/accountsMap.js';
+import { accountsMap } from '../utils/misc.js';
 
 const router = Router();
 
