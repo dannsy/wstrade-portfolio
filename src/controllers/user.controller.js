@@ -1,13 +1,18 @@
 import { Router } from 'express';
-import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
-import UserDto from '../models/user/userDto.js';
+import {
+  bodyRefreshToken,
+  headerEmail,
+  validateLogin,
+  validationMiddleware,
+} from '../middlewares/validation.middleware.js';
 import { getUser, saveUser, updateUserByEmail } from '../models/user/userDao.js';
+import UserDto from '../models/user/userDto.js';
+import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { accountsMap } from '../utils/misc.js';
 
 const router = Router();
 
-// TODO: error handling and request validation
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin(), validationMiddleware, async (req, res) => {
   const { email, password, otp } = req.body;
 
   const loginHeaders = await login(email, password, otp);
@@ -22,8 +27,9 @@ router.post('/login', async (req, res) => {
   res.send({ accessToken, refreshToken });
 });
 
-router.post('/refresh', async (req, res) => {
-  const { email, refreshToken } = req.body;
+router.post('/refresh', headerEmail(), bodyRefreshToken(), validationMiddleware, async (req, res) => {
+  const { email } = req.headers;
+  const { refreshToken } = req.body;
 
   const refreshHeaders = await refresh(refreshToken);
   const accessToken = refreshHeaders['x-access-token'];
@@ -36,8 +42,8 @@ router.post('/refresh', async (req, res) => {
   res.send({ accessToken, refreshToken: newRefreshToken });
 });
 
-router.get('/', (req, res) => {
-  const { email } = req.body;
+router.get('/', headerEmail(), validationMiddleware, (req, res) => {
+  const { email } = req.headers;
 
   const user = getUser(email);
   if (!user) {

@@ -1,6 +1,7 @@
 import express from 'express';
 import userController from './controllers/user.controller.js';
 import portfolioController from './controllers/portfolio.controller.js';
+import { errorMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
 const port = process.env.PORT;
@@ -14,6 +15,8 @@ app.get('/', (req, res) => {
 
 app.use('/user', userController);
 app.use('/portfolio', portfolioController);
+
+app.use(errorMiddleware);
 
 app.listen(port, () => {
   console.log(`WS Trade api listening on port ${port}`);

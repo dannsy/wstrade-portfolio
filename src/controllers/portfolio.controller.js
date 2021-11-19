@@ -6,7 +6,7 @@ import { roundTo } from '../utils/misc.js';
 const router = Router();
 
 router.get('/allocation', async (req, res) => {
-  const { email } = req.body;
+  const { email } = req.headers;
 
   const { accessToken, accounts } = getUser(email);
   const positions = await getPositions(accessToken);
