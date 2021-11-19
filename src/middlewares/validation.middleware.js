@@ -37,5 +37,6 @@ export function validationMiddleware(req, res, next) {
     return next();
   }
 
+  // TODO: descriptive error
   next(new Error('Request validation error'));
 }

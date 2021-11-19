@@ -1,11 +1,8 @@
-import { Router } from 'express';
 import { getUser } from '../models/user/userDao.js';
 import { getPositions } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { roundTo } from '../utils/misc.js';
 
-const router = Router();
-
-router.get('/allocation', async (req, res) => {
+export async function getAllocation(req, res, next) {
   const { email } = req.headers;
 
   const { accessToken, accounts } = getUser(email);
@@ -25,7 +22,6 @@ router.get('/allocation', async (req, res) => {
     amountPerStock[key].percentage = amountPerStock[key].amount / sum;
   });
 
-  // TODO: add available to trade
   const availableToTrade = accounts[0].availableToTrade;
   const amountPerStockAndSum = {
     sumInPosition: sum,
@@ -35,6 +31,4 @@ router.get('/allocation', async (req, res) => {
   };
 
   res.send(amountPerStockAndSum);
-});
-
-export default router;
+}

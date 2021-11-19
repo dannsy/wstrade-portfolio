@@ -1,11 +1,12 @@
 import express from 'express';
-import userController from './controllers/user.controller.js';
-import portfolioController from './controllers/portfolio.controller.js';
-import { errorMiddleware } from './middlewares/error.middleware.js';
+import userRouter from './routers/user.router.js';
+import portfolioRouter from './routers/portfolio.router.js';
+import { errorHandlingMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
 const port = process.env.PORT;
 
+// TODO: use morgan or something to log requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -13,10 +14,10 @@ app.get('/', (req, res) => {
   res.send('Index route');
 });
 
-app.use('/user', userController);
-app.use('/portfolio', portfolioController);
+app.use('/user', userRouter);
+app.use('/portfolio', portfolioRouter);
 
-app.use(errorMiddleware);
+app.use(errorHandlingMiddleware);
 
 app.listen(port, () => {
   console.log(`WS Trade api listening on port ${port}`);
