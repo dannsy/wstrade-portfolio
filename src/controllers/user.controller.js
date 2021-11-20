@@ -2,15 +2,23 @@ import { getUser, saveUser, updateUserByEmail } from '../models/user/userDao.js'
 import UserDto from '../models/user/userDto.js';
 import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { accountsMap } from '../utils/misc.js';
+import NotFoundError from '../errors/NotFound.error.js';
+import NotAuthorizedError from '../errors/NotAuthorized.error.js';
 
-// TODO: add try catch for axios error
 export async function postLogin(req, res, next) {
   const { email, password, otp } = req.body;
 
-  const loginHeaders = await login(email, password, otp);
+  let loginHeaders;
+  try {
+    loginHeaders = await login(email, password, otp);
+  } catch (err) {
+    // TODO: check for axios error message
+    return next(new NotAuthorizedError());
+  }
   const accessToken = loginHeaders['x-access-token'];
   const refreshToken = loginHeaders['x-refresh-token'];
 
+  // TODO: handle this error too
   let accounts = await getAccounts(accessToken);
   accounts = accountsMap(accounts);
   const user = new UserDto(email, accessToken, refreshToken, accounts);
@@ -23,7 +31,12 @@ export async function postRefresh(req, res, next) {
   const { email } = req.headers;
   const { refreshToken } = req.body;
 
-  const refreshHeaders = await refresh(refreshToken);
+  let refreshHeaders;
+  try {
+    refreshHeaders = await refresh(refreshToken);
+  } catch (err) {
+    return next(new NotAuthorizedError());
+  }
   const accessToken = refreshHeaders['x-access-token'];
   const newRefreshToken = refreshHeaders['x-refresh-token'];
 
@@ -40,7 +53,7 @@ export async function getMe(req, res, next) {
 
   const user = getUser(email);
   if (!user) {
-    return next(new Error(`User with email ${email} not found`));
+    return next(new NotFoundError('User'));
   }
 
   res.send(user);

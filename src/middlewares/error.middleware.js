@@ -1,11 +1,12 @@
+import InternalServerError from '../errors/InternalServer.error.js';
+
 export function errorCatchingMiddleware(controller) {
   return async (req, res, next) => {
     try {
       return await controller(req, res, next);
     } catch (err) {
-      // TODO: make this an internal server error
-      console.log(err.message);
-      return next(err);
+      console.err(err.message);
+      return next(new InternalServerError());
     }
   };
 }
@@ -16,6 +17,8 @@ export function errorHandlingMiddleware(err, req, res, next) {
     return next(err);
   }
 
-  // console.error(err);
-  res.status(400).send(err.message);
+  if (!err.status || !err.message) {
+    err = new InternalServerError();
+  }
+  res.status(err.status).send(err.message);
 }

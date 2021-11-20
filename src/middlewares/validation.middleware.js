@@ -1,4 +1,5 @@
 import { header, body, validationResult } from 'express-validator';
+import InvalidRequestError from '../errors/InvalidRequest.error.js';
 
 export function headerEmail() {
   return header('email').isEmail();
@@ -38,5 +39,5 @@ export function validationMiddleware(req, res, next) {
   }
 
   // TODO: descriptive error
-  next(new Error('Request validation error'));
+  next(new InvalidRequestError());
 }

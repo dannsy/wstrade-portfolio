@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 router.post('/login', validateLogin(), validationMiddleware, errorCatchingMiddleware(postLogin));
-router.post('/refresh', headerEmail(), bodyRefreshToken(), validationMiddleware, postRefresh);
-router.get('/', headerEmail(), validationMiddleware, getMe);
+router.post('/refresh', headerEmail(), bodyRefreshToken(), validationMiddleware, errorCatchingMiddleware(postRefresh));
+router.get('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(getMe));
 
 export default router;
