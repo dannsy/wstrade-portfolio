@@ -5,6 +5,15 @@ import { accountsMap } from '../utils/misc.js';
 import NotFoundError from '../errors/NotFound.error.js';
 import NotAuthorizedError from '../errors/NotAuthorized.error.js';
 
+async function getTokensAndAccounts(headers) {
+  const accessToken = headers['x-access-token'];
+  const refreshToken = headers['x-refresh-token'];
+
+  let accounts = await getAccounts(accessToken);
+  accounts = accountsMap(accounts);
+  return { accessToken, refreshToken, accounts };
+}
+
 export async function postLogin(req, res, next) {
   const { email, password, otp } = req.body;
 
@@ -12,14 +21,10 @@ export async function postLogin(req, res, next) {
   try {
     loginHeaders = await login(email, password, otp);
   } catch (err) {
-    // TODO: check for axios error message
     return next(new NotAuthorizedError());
   }
-  const accessToken = loginHeaders['x-access-token'];
-  const refreshToken = loginHeaders['x-refresh-token'];
 
-  let accounts = await getAccounts(accessToken);
-  accounts = accountsMap(accounts);
+  const { accessToken, refreshToken, accounts } = await getTokensAndAccounts(loginHeaders);
   const user = new UserDto(email, accessToken, refreshToken, accounts);
   saveUser(user);
 
@@ -36,12 +41,12 @@ export async function postRefresh(req, res, next) {
   } catch (err) {
     return next(new NotAuthorizedError());
   }
-  const accessToken = refreshHeaders['x-access-token'];
-  const newRefreshToken = refreshHeaders['x-refresh-token'];
 
-  let accounts = await getAccounts(accessToken);
-  accounts = accountsMap(accounts);
-  updateUserByEmail(email, accessToken, refreshToken, accounts);
+  const { accessToken, refreshToken: newRefreshToken, accounts } = await getTokensAndAccounts(refreshHeaders);
+  const updateSuccess = updateUserByEmail(email, accessToken, newRefreshToken, accounts);
+  if (!updateSuccess) {
+    return next(new NotFoundError('User'));
+  }
 
   res.send({ accessToken, refreshToken: newRefreshToken });
 }

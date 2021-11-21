@@ -16,14 +16,15 @@ export function saveUser(user) {
     refreshToken: user.refreshToken,
     accounts: user.accounts,
   };
+  return 'OK';
 }
 
 export function updateUserByEmail(email, accessToken, refreshToken, accounts) {
-  // TODO: account for email not present in tempStore
   const userFields = tempStore[email];
+  if (!userFields) return null;
+
   userFields.accessToken = accessToken;
   userFields.refreshToken = refreshToken;
   userFields.accounts = accounts;
-  const user = getUser(email);
-  return user;
+  return 'OK';
 }

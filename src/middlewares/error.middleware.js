@@ -5,7 +5,7 @@ export function errorCatchingMiddleware(controller) {
     try {
       return await controller(req, res, next);
     } catch (err) {
-      console.err(err.message);
+      console.error(err.message);
       return next(new InternalServerError());
     }
   };
