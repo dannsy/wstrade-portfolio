@@ -33,11 +33,15 @@ function validate(validations) {
 }
 
 export function validationMiddleware(req, res, next) {
-  const errors = validationResult(req);
+  const errorFormatter = ({ location, msg, param, value }) => {
+    if (typeof value === 'undefined') value = null;
+    return { [`${location}[${param}]`]: value, msg };
+  };
+
+  const errors = validationResult(req).formatWith(errorFormatter);
   if (errors.isEmpty()) {
     return next();
   }
 
-  // TODO: descriptive error
-  next(new InvalidRequestError());
+  next(new InvalidRequestError(errors.array()));
 }

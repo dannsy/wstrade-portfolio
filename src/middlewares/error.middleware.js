@@ -20,5 +20,5 @@ export function errorHandlingMiddleware(err, req, res, next) {
   if (!err.status || !err.message) {
     err = new InternalServerError();
   }
-  res.status(err.status).send(err.message);
+  res.status(err.status).send({ message: err.message, info: err.info });
 }

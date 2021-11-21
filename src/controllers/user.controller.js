@@ -18,7 +18,6 @@ export async function postLogin(req, res, next) {
   const accessToken = loginHeaders['x-access-token'];
   const refreshToken = loginHeaders['x-refresh-token'];
 
-  // TODO: handle this error too
   let accounts = await getAccounts(accessToken);
   accounts = accountsMap(accounts);
   const user = new UserDto(email, accessToken, refreshToken, accounts);
