@@ -40,8 +40,8 @@ export function validationMiddleware(req, res, next) {
 
   const errors = validationResult(req).formatWith(errorFormatter);
   if (errors.isEmpty()) {
-    return next();
+    next();
+  } else {
+    next(new InvalidRequestError(errors.array()));
   }
-
-  next(new InvalidRequestError(errors.array()));
 }

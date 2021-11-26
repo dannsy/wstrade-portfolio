@@ -51,7 +51,6 @@ export async function postRefresh(req, res, next) {
   res.send({ accessToken, refreshToken: newRefreshToken });
 }
 
-// TODO: add total amount of money
 export async function getMe(req, res, next) {
   const { email } = req.headers;
 

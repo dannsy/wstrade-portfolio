@@ -7,3 +7,11 @@ export function accountsMap(accounts) {
     return { accountId: id, accountType: account_type, availableToTrade: buying_power.amount };
   });
 }
+
+export function sumAvailableToTrade(accounts) {
+  let sum = 0;
+  for (const account of accounts) {
+    sum += account.availableToTrade;
+  }
+  return sum;
+}

@@ -1,34 +1,36 @@
 import { getUser } from '../models/user/userDao.js';
 import { getPositions } from '../services/wstrade-wrapper/wstrade-caller.js';
-import { roundTo } from '../utils/misc.js';
+import { sumAvailableToTrade } from '../utils/misc.js';
+import NotFoundError from '../errors/NotFound.error.js';
 
 export async function getAllocation(req, res, next) {
   const { email } = req.headers;
 
-  const { accessToken, accounts } = getUser(email);
+  const user = getUser(email);
+  if (!user) {
+    return next(new NotFoundError('User'));
+  }
+  const { accessToken, accounts } = user;
   const positions = await getPositions(accessToken);
 
   let sum = 0;
-  const amountPerStock = {};
-  positions.forEach((position) => {
-    let amount = position.quantity * position.quote.last;
-    amount = roundTo(amount);
+  const stocks = [];
+  for (const position of positions) {
+    const amount = position.quantity * position.quote.last;
     sum += amount;
-    amountPerStock[position.stock.symbol] = { amount, accountId: position.account_id };
-  });
-  sum = roundTo(sum);
+    stocks.push({ symbol: position.stock.symbol, accountId: position.account_id, amount });
+  }
+  for (const stock of stocks) {
+    stock.percentage = stock.amount / sum;
+  }
 
-  Object.keys(amountPerStock).forEach((key) => {
-    amountPerStock[key].percentage = amountPerStock[key].amount / sum;
-  });
-
-  const availableToTrade = accounts[0].availableToTrade;
-  const amountPerStockAndSum = {
-    sumInPosition: sum,
+  const availableToTrade = sumAvailableToTrade(accounts);
+  console.log(availableToTrade);
+  const allocation = {
+    inPosition: sum,
     availableToTrade,
     totalSum: sum + availableToTrade,
-    stocks: amountPerStock,
+    stocks,
   };
-
-  res.send(amountPerStockAndSum);
+  res.send(allocation);
 }
