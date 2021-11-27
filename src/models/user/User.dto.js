@@ -5,4 +5,12 @@ export default class UserDto {
     this.refreshToken = refreshToken;
     this.accounts = accounts;
   }
+
+  toJSON() {
+    return {
+      accessToken: this.accessToken,
+      refreshToken: this.refreshToken,
+      accounts: this.accounts,
+    };
+  }
 }

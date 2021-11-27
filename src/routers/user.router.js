@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { getMe, postLogin, postRefresh } from '../controllers/user.controller.js';
 import { errorCatchingMiddleware } from '../middlewares/error.middleware.js';
 import {
   bodyRefreshToken,
@@ -7,11 +6,13 @@ import {
   validateLogin,
   validationMiddleware,
 } from '../middlewares/validation.middleware.js';
+import { deleteUser, getUser, postLogin, postRefresh } from '../controllers/user.controller.js';
 
 const router = Router();
 
 router.post('/login', validateLogin(), validationMiddleware, errorCatchingMiddleware(postLogin));
 router.post('/refresh', headerEmail(), bodyRefreshToken(), validationMiddleware, errorCatchingMiddleware(postRefresh));
-router.get('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(getMe));
+router.get('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(getUser));
+router.delete('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(deleteUser));
 
 export default router;

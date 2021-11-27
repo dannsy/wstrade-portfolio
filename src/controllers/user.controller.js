@@ -1,5 +1,5 @@
-import { getUser, saveUser, updateUserByEmail } from '../models/user/userDao.js';
-import UserDto from '../models/user/userDto.js';
+import * as userDao from '../models/user/user.dao.js';
+import UserDto from '../models/user/User.dto.js';
 import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { accountsMap } from '../utils/misc.js';
 import NotFoundError from '../errors/NotFound.error.js';
@@ -26,7 +26,7 @@ export async function postLogin(req, res, next) {
 
   const { accessToken, refreshToken, accounts } = await getTokensAndAccounts(loginHeaders);
   const user = new UserDto(email, accessToken, refreshToken, accounts);
-  saveUser(user);
+  await userDao.saveUser(user);
 
   res.send({ accessToken, refreshToken });
 }
@@ -43,7 +43,7 @@ export async function postRefresh(req, res, next) {
   }
 
   const { accessToken, refreshToken: newRefreshToken, accounts } = await getTokensAndAccounts(refreshHeaders);
-  const updateSuccess = updateUserByEmail(email, accessToken, newRefreshToken, accounts);
+  const updateSuccess = await userDao.updateUserByEmail(email, accessToken, newRefreshToken, accounts);
   if (!updateSuccess) {
     return next(new NotFoundError('User'));
   }
@@ -51,13 +51,24 @@ export async function postRefresh(req, res, next) {
   res.send({ accessToken, refreshToken: newRefreshToken });
 }
 
-export async function getMe(req, res, next) {
+export async function getUser(req, res, next) {
   const { email } = req.headers;
 
-  const user = getUser(email);
+  const user = await userDao.getUser(email);
   if (!user) {
     return next(new NotFoundError('User'));
   }
 
   res.send(user);
+}
+
+export async function deleteUser(req, res, next) {
+  const { email } = req.headers;
+
+  const deleteSuccess = await userDao.deleteUser(email);
+  if (!deleteSuccess) {
+    return next(new NotFoundError('User'));
+  }
+
+  res.send('OK');
 }

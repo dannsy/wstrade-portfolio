@@ -1,4 +1,4 @@
-import { getUser } from '../models/user/userDao.js';
+import { getUser } from '../models/user/user.dao.js';
 import { getPositions } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { sumAvailableToTrade } from '../utils/misc.js';
 import NotFoundError from '../errors/NotFound.error.js';
@@ -6,7 +6,7 @@ import NotFoundError from '../errors/NotFound.error.js';
 export async function getAllocation(req, res, next) {
   const { email } = req.headers;
 
-  const user = getUser(email);
+  const user = await getUser(email);
   if (!user) {
     return next(new NotFoundError('User'));
   }
@@ -25,7 +25,6 @@ export async function getAllocation(req, res, next) {
   }
 
   const availableToTrade = sumAvailableToTrade(accounts);
-  console.log(availableToTrade);
   const allocation = {
     inPosition: sum,
     availableToTrade,
