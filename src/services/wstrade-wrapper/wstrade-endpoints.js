@@ -67,10 +67,11 @@ export const getSecurities = (security) => {
   };
 };
 
-export const getSecurityById = (securityId) => {
+export const getSecurityById = (accessToken, securityId) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}securities/${securityId}`,
+    headers: { authorization: accessToken },
   };
 };
 

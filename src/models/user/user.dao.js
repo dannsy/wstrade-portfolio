@@ -1,5 +1,6 @@
 import redis from '../../config/redis.js';
 import UserDto from './User.dto.js';
+// TODO: use postgres or something to store long lived user data (allocation preference)
 
 export async function getUser(email) {
   const userFieldsString = await redis.get(email);
@@ -12,7 +13,7 @@ export async function getUser(email) {
 
 export function saveUser(user) {
   const userFieldsString = JSON.stringify(user);
-  return redis.set(user.email, userFieldsString);
+  return redis.set(user.email, userFieldsString, 'EX', process.env.EXP);
 }
 
 export async function updateUserByEmail(email, accessToken, refreshToken, accounts) {

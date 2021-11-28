@@ -16,6 +16,11 @@ export async function getAccounts(accessToken) {
   return response.data.results;
 }
 
+export async function getSecurityById(accessToken, securityId) {
+  const response = await axios(wstradeEndpoints.getSecurityById(accessToken, securityId));
+  return response.data;
+}
+
 export async function getPositions(accessToken) {
   const response = await axios(wstradeEndpoints.getPositions(accessToken));
   return response.data.results;
