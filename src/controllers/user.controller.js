@@ -62,6 +62,7 @@ export async function getUser(req, res, next) {
   res.send(user);
 }
 
+// TODO: have option to either just tokens or the entire user account
 export async function deleteUser(req, res, next) {
   const { email } = req.headers;
 

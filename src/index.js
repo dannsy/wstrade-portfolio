@@ -1,25 +1,32 @@
 import express from 'express';
-import morgan from 'morgan'
+import morgan from 'morgan';
+import { mongoConnect } from './config/mongo.js';
 import userRouter from './routers/user.router.js';
 import portfolioRouter from './routers/portfolio.router.js';
 import { errorHandlingMiddleware } from './middlewares/error.middleware.js';
 
-const app = express();
-const port = process.env.PORT;
+async function main() {
+  await mongoConnect();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(morgan('dev'))
+  const app = express();
+  const port = process.env.PORT;
 
-app.get('/', (req, res) => {
-  res.send('Index route');
-});
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+  app.use(morgan('dev'));
 
-app.use('/user', userRouter);
-app.use('/portfolio', portfolioRouter);
+  app.get('/', (req, res) => {
+    res.send('Index route');
+  });
 
-app.use(errorHandlingMiddleware);
+  app.use('/user', userRouter);
+  app.use('/portfolio', portfolioRouter);
 
-app.listen(port, () => {
-  console.log(`WS Trade api listening on port ${port}`);
-});
+  app.use(errorHandlingMiddleware);
+
+  app.listen(port, () => {
+    console.log(`WS Trade api listening on port ${port}`);
+  });
+}
+
+main().catch((err) => console.error(err));
