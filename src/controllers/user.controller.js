@@ -2,8 +2,6 @@ import * as userDao from '../models/user/user.dao.js';
 import UserDto from '../models/user/User.dto.js';
 import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { accountsMap } from '../utils/misc.js';
-import NotFoundError from '../errors/NotFound.error.js';
-import NotAuthorizedError from '../errors/NotAuthorized.error.js';
 
 async function getTokensAndAccounts(headers) {
   const accessToken = headers['x-access-token'];
@@ -14,16 +12,10 @@ async function getTokensAndAccounts(headers) {
   return { accessToken, refreshToken, accounts };
 }
 
-export async function postLogin(req, res, next) {
+export async function postLogin(req, res) {
   const { email, password, otp } = req.body;
 
-  let loginHeaders;
-  try {
-    loginHeaders = await login(email, password, otp);
-  } catch (err) {
-    return next(new NotAuthorizedError());
-  }
-
+  const loginHeaders = await login(email, password, otp);
   const { accessToken, refreshToken, accounts } = await getTokensAndAccounts(loginHeaders);
   const user = new UserDto(email, accessToken, refreshToken, accounts);
   await userDao.saveUser(user);
@@ -31,45 +23,26 @@ export async function postLogin(req, res, next) {
   res.send({ accessToken, refreshToken });
 }
 
-export async function postRefresh(req, res, next) {
+export async function postRefresh(req, res) {
   const { email } = req.headers;
   const { refreshToken } = req.body;
 
-  let refreshHeaders;
-  try {
-    refreshHeaders = await refresh(refreshToken);
-  } catch (err) {
-    return next(new NotAuthorizedError());
-  }
-
+  const refreshHeaders = await refresh(refreshToken);
   const { accessToken, refreshToken: newRefreshToken, accounts } = await getTokensAndAccounts(refreshHeaders);
-  const updateSuccess = await userDao.updateUserByEmail(email, accessToken, newRefreshToken, accounts);
-  if (!updateSuccess) {
-    return next(new NotFoundError('User'));
-  }
+  await userDao.updateUserByEmail(email, accessToken, newRefreshToken, accounts);
 
   res.send({ accessToken, refreshToken: newRefreshToken });
 }
 
-export async function getUser(req, res, next) {
+export async function getUser(req, res) {
   const { email } = req.headers;
-
   const user = await userDao.getUser(email);
-  if (!user) {
-    return next(new NotFoundError('User'));
-  }
-
   res.send(user);
 }
 
 // TODO: have option to either just tokens or the entire user account
-export async function deleteUser(req, res, next) {
+export async function deleteUser(req, res) {
   const { email } = req.headers;
-
-  const deleteSuccess = await userDao.deleteUser(email);
-  if (!deleteSuccess) {
-    return next(new NotFoundError('User'));
-  }
-
-  res.send('OK');
+  await userDao.deleteUser(email);
+  res.send({ message: 'User delete successful' });
 }

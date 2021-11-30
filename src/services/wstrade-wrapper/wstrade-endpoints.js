@@ -59,11 +59,11 @@ export const deleteOrder = (orderId) => {
   };
 };
 
-// TODO: support multiple securities
-export const getSecurities = (security) => {
+export const getSecurityQuery = (accessToken, security) => {
   return {
     method: 'get',
     url: `${wstradeBaseUrl}securities?query=${security}`,
+    headers: { authorization: accessToken },
   };
 };
 

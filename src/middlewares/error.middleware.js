@@ -1,3 +1,4 @@
+import HttpError from '../errors/Http.error.js';
 import InternalServerError from '../errors/InternalServer.error.js';
 
 export function errorCatchingMiddleware(controller) {
@@ -5,8 +6,12 @@ export function errorCatchingMiddleware(controller) {
     try {
       return await controller(req, res, next);
     } catch (err) {
-      console.error(err.message);
-      return next(new InternalServerError());
+      console.error(err);
+      if (err instanceof HttpError) {
+        return next(err);
+      } else {
+        return next(new InternalServerError());
+      }
     }
   };
 }

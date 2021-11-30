@@ -1,10 +1,10 @@
 import redis from '../../config/redis.js';
 import UserDto from './User.dto.js';
-// TODO: use postgres or something to store long lived user data (allocation preference)
+import NotFoundError from '../../errors/NotFound.error.js';
 
 export async function getUser(email) {
   const userFieldsString = await redis.get(email);
-  if (!userFieldsString) return null;
+  if (!userFieldsString) throw new NotFoundError('User');
 
   const userFields = JSON.parse(userFieldsString);
   const user = new UserDto(email, userFields.accessToken, userFields.refreshToken, userFields.accounts);
@@ -18,8 +18,6 @@ export function saveUser(user) {
 
 export async function updateUserByEmail(email, accessToken, refreshToken, accounts) {
   const user = await getUser(email);
-  if (!user) return null;
-
   user.accessToken = accessToken;
   user.refreshToken = refreshToken;
   user.accounts = accounts;
@@ -28,6 +26,6 @@ export async function updateUserByEmail(email, accessToken, refreshToken, accoun
 
 export async function deleteUser(email) {
   const deleteCount = await redis.del(email);
-  if (deleteCount === 0) return null;
+  if (deleteCount === 0) throw new NotFoundError('User');
   else return 'OK';
 }
