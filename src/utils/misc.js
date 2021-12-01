@@ -9,9 +9,5 @@ export function accountsMap(accounts) {
 }
 
 export function sumAvailableToTrade(accounts) {
-  let sum = 0;
-  for (const account of accounts) {
-    sum += account.availableToTrade;
-  }
-  return sum;
+  return accounts.reduce((prev, curr) => prev + curr.availableToTrade, 0);
 }

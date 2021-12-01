@@ -1,7 +1,7 @@
-import * as userDao from '../models/user/user.dao.js';
-import UserDto from '../models/user/User.dto.js';
+import User from '../models/User.js';
 import { getAccounts, login, refresh } from '../services/wstrade-wrapper/wstrade-caller.js';
 import { accountsMap } from '../utils/misc.js';
+import NotFoundError from '../errors/NotFound.error.js';
 
 async function getTokensAndAccounts(headers) {
   const accessToken = headers['x-access-token'];
@@ -17,8 +17,14 @@ export async function postLogin(req, res) {
 
   const loginHeaders = await login(email, password, otp);
   const { accessToken, refreshToken, accounts } = await getTokensAndAccounts(loginHeaders);
-  const user = new UserDto(email, accessToken, refreshToken, accounts);
-  await userDao.saveUser(user);
+
+  let user = await User.findOne({ email }).exec();
+  if (!user) {
+    user = new User({ email });
+  }
+  user.accounts = accounts;
+  await user.setTokens(accessToken, refreshToken);
+  await user.save();
 
   res.send({ accessToken, refreshToken });
 }
@@ -27,22 +33,39 @@ export async function postRefresh(req, res) {
   const { email } = req.headers;
   const { refreshToken } = req.body;
 
+  const user = await User.findOne({ email }).exec();
+  if (!user) throw new NotFoundError('User');
+
   const refreshHeaders = await refresh(refreshToken);
   const { accessToken, refreshToken: newRefreshToken, accounts } = await getTokensAndAccounts(refreshHeaders);
-  await userDao.updateUserByEmail(email, accessToken, newRefreshToken, accounts);
+
+  user.accounts = accounts;
+  await user.setTokens(accessToken, newRefreshToken);
+  await user.save();
 
   res.send({ accessToken, refreshToken: newRefreshToken });
 }
 
 export async function getUser(req, res) {
   const { email } = req.headers;
-  const user = await userDao.getUser(email);
-  res.send(user);
+
+  const user = await User.findOne({ email }).exec();
+  if (!user) throw new NotFoundError('User');
+  const { accessToken, refreshToken } = await user.getTokens();
+
+  res.send({ email: user.email, allocation: user.allocation, account: user.account, accessToken, refreshToken });
 }
 
-// TODO: have option to either just tokens or the entire user account
 export async function deleteUser(req, res) {
   const { email } = req.headers;
-  await userDao.deleteUser(email);
+  const { fullDelete } = req.body;
+
+  const user = await User.findOne({ email }).exec();
+  if (!user) throw new NotFoundError('User');
+  await user.deleteTokens();
+  if (fullDelete) {
+    await User.deleteOne({ email }).exec();
+  }
+
   res.send({ message: 'User delete successful' });
 }

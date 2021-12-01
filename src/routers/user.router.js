@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { errorCatchingMiddleware } from '../middlewares/error.middleware.js';
 import {
+  bodyFullDelete,
   bodyRefreshToken,
   headerEmail,
   validateLogin,
@@ -13,6 +14,6 @@ const router = Router();
 router.post('/login', validateLogin(), validationMiddleware, errorCatchingMiddleware(postLogin));
 router.post('/refresh', headerEmail(), bodyRefreshToken(), validationMiddleware, errorCatchingMiddleware(postRefresh));
 router.get('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(getUser));
-router.delete('/', headerEmail(), validationMiddleware, errorCatchingMiddleware(deleteUser));
+router.delete('/', headerEmail(), bodyFullDelete(), validationMiddleware, errorCatchingMiddleware(deleteUser));
 
 export default router;

@@ -21,6 +21,14 @@ export function bodyRefreshToken() {
   return body('refreshToken').isString();
 }
 
+export function bodyAllocation() {
+  return body('allocation').isArray();
+}
+
+export function bodyFullDelete() {
+  return body('fullDelete').optional().isBoolean();
+}
+
 export function validateLogin() {
   return validate([bodyEmail(), bodyPassword(), bodyOtp()]);
 }
