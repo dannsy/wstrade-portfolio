@@ -1,14 +1,14 @@
 import User from '../models/User.js';
 import Stock from '../models/Stock.js';
 import { getPositions, getSecurityQuery, getSecurityById } from '../services/wstrade-wrapper/wstrade-caller.js';
-import { roundTo, sumAvailableToTrade } from '../utils/misc.js';
+import { roundTo } from '../utils/misc.js';
 import NotFoundError from '../errors/NotFound.error.js';
 import InvalidAllocationError from '../errors/InvalidAllocation.error.js';
 
 async function getPositionsInfo(accessToken) {
   const positions = await getPositions(accessToken);
 
-  let sum = 0;
+  let sumInPosition = 0;
   const stocksIndexMap = new Map();
   const stocks = await Promise.all(
     positions.map(async (position, index) => {
@@ -18,20 +18,19 @@ async function getPositionsInfo(accessToken) {
         .lean()
         .exec();
 
-      const amount = position.quantity * position.quote.last;
-      sum += amount;
-      stocksIndexMap.set(symbol, index);
+      Stock.setFields(stock, {
+        quantity: position.quantity,
+        quote: position.quote.last,
+        accountId: position.account_id,
+      });
+      sumInPosition += stock.amount;
 
-      // TODO: use static functions to set these temporary fields
-      stock.quantity = position.quantity;
-      stock.quote = Number(position.quote.last);
-      stock.amount = amount;
-      stock.accountId = position.account_id;
+      stocksIndexMap.set(symbol, index);
       return stock;
     })
   );
 
-  return { sum, stocks, stocksIndexMap };
+  return { sumInPosition, stocks, stocksIndexMap };
 }
 
 export async function getPortfolio(req, res) {
@@ -41,23 +40,14 @@ export async function getPortfolio(req, res) {
   if (!user) throw new NotFoundError('User');
   const { accessToken } = await user.getTokens();
 
-  const positionsInfo = await getPositionsInfo(accessToken);
-  let { sum, stocks } = positionsInfo;
-  stocks = stocks.map((stock) => {
-    return {
-      symbol: stock.symbol,
-      quantity: stock.quantity,
-      quote: stock.quote,
-      amount: roundTo(stock.amount),
-      percentage: roundTo((stock.amount / sum) * 100) + '%',
-    };
-  });
+  let { sumInPosition, stocks } = await getPositionsInfo(accessToken);
+  stocks = stocks.map((stock) => Stock.getPercentage(stock, sumInPosition));
 
-  const availableToTrade = sumAvailableToTrade(user.accounts);
+  const availableToTrade = user.sumAvailableToTrade();
   const portfolio = {
-    inPosition: sum,
+    sumInPosition: sumInPosition,
     availableToTrade: availableToTrade,
-    totalSum: sum + availableToTrade,
+    totalSum: sumInPosition + availableToTrade,
     stocks: stocks,
   };
   res.send(portfolio);
@@ -70,71 +60,35 @@ export async function getRebalancedPortfolio(req, res) {
   if (!user) throw new NotFoundError('User');
   const { accessToken } = await user.getTokens();
 
-  const positionsInfo = await getPositionsInfo(accessToken);
-  let { sum, stocks: heldStocks, stocksIndexMap } = positionsInfo;
-  const availableToTrade = sumAvailableToTrade(user.accounts);
-  const totalSum = sum + availableToTrade;
+  let { sumInPosition, stocks: heldStocks, stocksIndexMap } = await getPositionsInfo(accessToken);
+  const totalSum = sumInPosition + user.sumAvailableToTrade();
 
-  let newSum = 0;
-  const rebalancedStocks = [];
-  // TODO: use map instead
-  for (const asset of user.allocation) {
-    let stockInfo;
-    if (stocksIndexMap.has(asset.stock.symbol)) {
-      stockInfo = heldStocks[stocksIndexMap.get(asset.stock.symbol)];
-    } else {
-      const security = await getSecurityById(accessToken, asset.stock.securityId);
-      stockInfo = {
-        symbol: security.stock.symbol,
-        securityId: security.id,
-        quantity: 0,
-        quote: Number(security.quote.last),
-        amount: 0,
-        accountId: 'N/A',
-      };
-    }
+  // Calculate needed trades to achieve user preferred allocation
+  let newSumInPosition = 0;
+  let rebalancedStocks = await Promise.all(
+    user.allocation.map(async (asset) => {
+      let stock;
+      if (stocksIndexMap.has(asset.stock.symbol)) {
+        stock = heldStocks[stocksIndexMap.get(asset.stock.symbol)];
+      } else {
+        const security = await getSecurityById(accessToken, asset.stock.securityId);
+        stock = asset.stock.toObject();
+        Stock.setFields(stock, { quote: security.quote.last });
+      }
 
-    const amount = totalSum * asset.percentage;
-    const requiredQuantity = Math.floor(amount / stockInfo.quote);
-    const finalAmount = requiredQuantity * stockInfo.quote;
-    newSum += finalAmount;
-    // TODO: create function for constructing stock object, maybe store to db even
-    rebalancedStocks.push({
-      symbol: stockInfo.symbol,
-      securityId: stockInfo.securityId,
-      requiredQuantity: requiredQuantity,
-      currentQuantity: stockInfo.quantity,
-      changeInQuantity: requiredQuantity - stockInfo.quantity,
-      quote: stockInfo.quote,
-      finalAmount: roundTo(finalAmount),
-      currentAmount: roundTo(stockInfo.amount),
-      percentage: roundTo((finalAmount / totalSum) * 100) + '%',
-      preferredPercentage: roundTo(asset.percentage * 100) + '%',
-    });
-  }
+      stock = Stock.rebalance(stock, totalSum, asset.percentage);
+      newSumInPosition += stock.amount.final;
+      return stock;
+    })
+  );
 
-  const toSell = heldStocks
-    .filter((stock) => !user.allocation.some((asset) => asset.stock.symbol === stock.symbol))
-    .map((stock) => stock.symbol);
-  for (const symbol of toSell) {
-    const stockInfo = heldStocks[stocksIndexMap.get(symbol)];
-    rebalancedStocks.push({
-      symbol: symbol,
-      securityId: stockInfo.securityId,
-      requiredQuantity: 0,
-      currentQuantity: stockInfo.quantity,
-      changeInQuantity: -stockInfo.quantity,
-      quote: stockInfo.quote,
-      finalAmount: 0,
-      currentAmount: roundTo(stockInfo.amount),
-      percentage: '0%',
-      preferredPercentage: '0%',
-    });
-  }
+  // Find which stocks need to be sold entirely
+  const toSell = heldStocks.filter((stock) => !user.allocation.some((asset) => asset.stock.symbol === stock.symbol));
+  rebalancedStocks = rebalancedStocks.concat(toSell.map((stock) => Stock.rebalance(stock, totalSum, 0)));
 
   const portfolio = {
-    inPosition: newSum,
-    availableToTrade: totalSum - newSum,
+    sumInPosition: newSumInPosition,
+    availableToTrade: totalSum - newSumInPosition,
     totalSum: totalSum,
     stocks: rebalancedStocks,
   };

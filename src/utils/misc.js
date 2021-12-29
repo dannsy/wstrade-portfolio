@@ -7,7 +7,3 @@ export function accountsMap(accounts) {
     return { accountId: id, accountType: account_type, availableToTrade: buying_power.amount };
   });
 }
-
-export function sumAvailableToTrade(accounts) {
-  return accounts.reduce((prev, curr) => prev + curr.availableToTrade, 0);
-}

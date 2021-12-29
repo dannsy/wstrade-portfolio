@@ -55,4 +55,8 @@ userSchema.methods.deleteTokens = async function () {
   await redis.del(this.email);
 };
 
+userSchema.methods.sumAvailableToTrade = function () {
+  return this.accounts.reduce((prev, curr) => prev + curr.availableToTrade, 0);
+};
+
 export default mongoose.model('User', userSchema);
